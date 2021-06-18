@@ -1,3 +1,5 @@
+/* bitonic sort codes from: : https://github.com/zjin-lcf/oneAPI-DirectProgramming/blob/master/bitonic-sort-dpct/main.cpp */
+
 #include <CL/sycl.hpp>
 #include <dpct/dpct.hpp>
 #include <math.h>
