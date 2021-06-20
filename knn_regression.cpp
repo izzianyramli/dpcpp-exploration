@@ -8,15 +8,15 @@ using namespace cl::sycl;
 
 #define BLOCK_SIZE 256
 
-double mean_fn(double a[], int n) {
-    double sum = 0;
+float mean_fn(float a[], int n) {
+    float sum = 0;
     for (int i=0; i < n; i++) {
         sum += a[i];
     }    
     return sum / n;
 }
 
-void bs (const int seq_len, const int two_power, double *a, double *b, double *c, sycl::nd_item<3> item_ct1) {
+void bs (const int seq_len, const int two_power, float *a, float *b, float *c, sycl::nd_item<3> item_ct1) {
   int i = item_ct1.get_local_range().get(2) * item_ct1.get_group(2) +
           item_ct1.get_local_id(2);
 
@@ -33,9 +33,9 @@ void bs (const int seq_len, const int two_power, double *a, double *b, double *c
   if (swapped_ele != -1) {
     if (((c[i] > c[swapped_ele]) && increasing) ||
     ((c[i] < c[swapped_ele]) && !increasing)) {
-      double temp_a = a[i];
-      double temp_b = b[i];
-      double temp_c = c[i];
+      float temp_a = a[i];
+      float temp_b = b[i];
+      float temp_c = c[i];
       a[i] = a[swapped_ele];
       b[i] = b[swapped_ele];
       c[i] = c[swapped_ele];
@@ -46,7 +46,7 @@ void bs (const int seq_len, const int two_power, double *a, double *b, double *c
   }
 }
 
-void ParallelBitonicSort(double data[], double label[], double distance[], int n) {
+void ParallelBitonicSort(float data[], float label[], float distance[], int n) {
   dpct::device_ext &dev_ct1 = dpct::get_current_device();
   sycl::queue &q_ct1 = dev_ct1.default_queue();
   time_t start, end;
@@ -57,13 +57,13 @@ void ParallelBitonicSort(double data[], double label[], double distance[], int n
   int size = sycl::pown((float)(2), n);
 
   // SYCL buffer allocated for device 
-  double *a, *b, *c;
-  a = sycl::malloc_device<double>(size, q_ct1);
-  b = sycl::malloc_device<double>(size, q_ct1);
-  c = sycl::malloc_device<double>(size, q_ct1);
-  q_ct1.memcpy(a, data, sizeof(double) * size).wait();
-  q_ct1.memcpy(b, label, sizeof(double) * size).wait();
-  q_ct1.memcpy(c, distance, sizeof(double) * size).wait();
+  float *a, *b, *c;
+  a = sycl::malloc_device<float>(size, q_ct1);
+  b = sycl::malloc_device<float>(size, q_ct1);
+  c = sycl::malloc_device<float>(size, q_ct1);
+  q_ct1.memcpy(a, data, sizeof(float) * size).wait();
+  q_ct1.memcpy(b, label, sizeof(float) * size).wait();
+  q_ct1.memcpy(c, distance, sizeof(float) * size).wait();
 
   time(&start);
   // step from 0, 1, 2, ...., n-1
@@ -94,9 +94,9 @@ void ParallelBitonicSort(double data[], double label[], double distance[], int n
   time(&end);
     
   std::cout << "Parallel Bitonic Sort | start: " << start << ", end: " << end << ", duration: " << end - start << " seconds " << std::endl;
-  q_ct1.memcpy(data, a, sizeof(double) * size).wait();
-  q_ct1.memcpy(label, b, sizeof(double) * size).wait();
-  q_ct1.memcpy(distance, c, sizeof(double) * size).wait();
+  q_ct1.memcpy(data, a, sizeof(float) * size).wait();
+  q_ct1.memcpy(label, b, sizeof(float) * size).wait();
+  q_ct1.memcpy(distance, c, sizeof(float) * size).wait();
   sycl::free(a, q_ct1);
   sycl::free(b, q_ct1);
   sycl::free(c, q_ct1);
@@ -104,7 +104,7 @@ void ParallelBitonicSort(double data[], double label[], double distance[], int n
 
 // Loop over the bitonic sequences at each stage in serial.
 void SwapElements(int step, int stage, int num_sequence, int seq_len,
-                  double *data_array, double *label_array, double *distance_array) {
+                  float *data_array, float *label_array, float *distance_array) {
   for (int seq_num = 0; seq_num < num_sequence; seq_num++) {
     int odd = seq_num / (sycl::pown((float)(2), (step - stage)));
     bool increasing = ((odd % 2) == 0);
@@ -117,9 +117,9 @@ void SwapElements(int step, int stage, int num_sequence, int seq_len,
 
       if (((distance_array[i] > distance_array[swapped_ele]) && increasing) ||
           ((distance_array[i] < distance_array[swapped_ele]) && !increasing)) {
-        double temp_a = data_array[i];
-        double temp_b = label_array[i];
-        double temp_c = distance_array[i];
+        float temp_a = data_array[i];
+        float temp_b = label_array[i];
+        float temp_c = distance_array[i];
         data_array[i] = data_array[swapped_ele];
         label_array[i] = label_array[swapped_ele];
         distance_array[i] = distance_array[swapped_ele];
@@ -131,7 +131,7 @@ void SwapElements(int step, int stage, int num_sequence, int seq_len,
   }    // end all sequences
 }
 
-inline void BitonicSort(double a[], double b[], double c[], int n) {
+inline void BitonicSort(float a[], float b[], float c[], int n) {
   // n: the exponent indicating the array size = 2 ** n
   time_t start, end;
     
@@ -154,7 +154,7 @@ inline void BitonicSort(double a[], double b[], double c[], int n) {
 }
 
 // Function showing the array.
-void DisplayArray(double a[], int array_size) {
+void DisplayArray(float a[], int array_size) {
   std::cout.precision(4);
   for (int i = 0; i < array_size; ++i) {
       std::cout << std:: fixed << a[i] << " ";
@@ -196,14 +196,14 @@ int main(int argc, char *argv[]) {
   std::cout << "\nArray size: " << size << ", seed: " << seed << "\n";
 
   // Memory allocated
-  double *data = (double *)malloc(size * sizeof(double));
-  double *label = (double *)malloc(size * sizeof(double));
-  double *distance = (double *)malloc(size * sizeof(double));
+  float *data = (float *)malloc(size * sizeof(float));
+  float *label = (float *)malloc(size * sizeof(float));
+  float *distance = (float *)malloc(size * sizeof(float));
 
   // Initialize the array randomly using a seed.
   srand(seed);
     
-  double query = (rand() % 500) / 10.5;
+  float query = (rand() % 500) / 10.5;
   std::cout << "query: " << query << std::endl;
 
   for (int i = 0; i < size; i++) {
@@ -234,7 +234,7 @@ int main(int argc, char *argv[]) {
   std::cout << "\ndistance after sorting using parallel bitonic sort:\n";
   DisplayArray(distance, k);
     
-  double mean_value = mean_fn(label, k);
+  float mean_value = mean_fn(label, k);
   std::cout.precision(4);
     
   std::cout << "Query value: " << query << ", Regression result: " << std::fixed  << mean_value << std::endl;
